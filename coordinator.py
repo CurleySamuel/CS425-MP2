@@ -28,17 +28,22 @@ def main():
     print colored("\tNode is responding", "cyan")
 
     # Fill initial node with all keys.
-
+    print colored("Populating system with keys", "yellow")
+    for key in range(0,256):
+        force_key(0, key)
+    print colored("\tKeys 0 - 255 entered", "cyan")
 
     # Enter input loop
-
+    print colored("System Initialized! Entering loop.\n", "yellow")
+    while 1:
+        command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
 
     # Kill all procreations
     smother_children()
 
 
 def smother_children(signalnum=0, handler=0):
-    print colored("Killing all nodes", "yellow")
+    print colored("\nKilling all nodes", "yellow")
     for key, val in node_list.iteritems():
         val[1].terminate()
     print colored("\tSIGTERMS sent. Giving nodes time to clean up", "cyan")
@@ -51,10 +56,12 @@ def smother_children(signalnum=0, handler=0):
     sys.exit(0)
 
 
+def force_key(node_key, key):
+    pass
+
 
 def listen_for_complete(key):
-    return True
-
+    pass
 
 
 def launch_node(key, data={}):
