@@ -1,5 +1,10 @@
 import socket
 from termcolor import colored
+import subprocess
+import json
+import time
+import signal
+import sys
 
 coord_port = 44443
 start_port = 44444
@@ -10,28 +15,62 @@ def main():
     global node_list
 
     # Confirm that port range is currently available.
+    print colored("Initializing Ports", "yellow")
     initialize_ports()
+    print colored("\tCoordinator port: ", "cyan") + "\n\t\t{}".format(coord_port)
+    print colored("\tNode ports: ", "cyan") + "\n\t\t{} - {}".format(start_port, start_port+254)
 
     # Create a new initial empty node.
+    print colored("Creating Initial Node", "yellow")
+    launch_node(0)
+    print colored("\tNode is launched, waiting for response", "cyan")
+    listen_for_complete(0)
+    print colored("\tNode is responding", "cyan")
 
     # Fill initial node with all keys.
 
+
     # Enter input loop
+
+    smother_children()
+
+def smother_children(signalnum=0, handler=0):
+    print colored("Killing all nodes", "yellow")
+    for key, val in node_list.iteritems():
+        val[1].terminate()
+    print colored("\tSIGTERMS sent. Giving nodes time to clean up", "cyan")
+    time.sleep(2)
+    for key, val in node_list.iteritems():
+        if val[1].poll() is None:
+            print colored("\tSending SIGKILL to {}", "red").format(val[1].pid)
+            val[1].kill()
+    print colored("\tAll processes killed. Exiting.", "cyan")
+    sys.exit(0)
+
+
+def listen_for_complete(key):
+    return True
+
+
+
+def launch_node(key, data={}):
+    if key in node_list.keys():
+        print colored("Node with key already exists!", "red")
+        return
+    node_port = key + start_port
+    json_data = json.dumps(data)
+    node_list[key] = (node_port, subprocess.Popen(["python", "node.py", str(coord_port), str(node_port), json_data]))
 
 
 def initialize_ports():
     global start_port
     global coord_port
-    print colored("Initializing Ports", "yellow")
     print colored("\tChecking port range {} - {}", "cyan").format(coord_port, coord_port+255)
     if not check_port_range(coord_port, 256):
         coord_port = max((coord_port + 256)%65535, 1024)
         start_port = coord_port + 1
         initialize_ports()
         return
-    print colored("\tCoordinator port: ", "cyan") + "\n\t\t{}".format(coord_port)
-    print colored("\tNode ports: ", "cyan") + "\n\t\t{} - {}".format(start_port, start_port+254)
-
 
 
 def check_port_range(start, num_ports):
@@ -49,4 +88,5 @@ def check_port_range(start, num_ports):
     return False
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, smother_children)
     main()
