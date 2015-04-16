@@ -32,7 +32,10 @@ def main():
 
     # Enter input loop
 
+
+    # Kill all procreations
     smother_children()
+
 
 def smother_children(signalnum=0, handler=0):
     print colored("Killing all nodes", "yellow")
@@ -46,6 +49,7 @@ def smother_children(signalnum=0, handler=0):
             val[1].kill()
     print colored("\tAll processes killed. Exiting.", "cyan")
     sys.exit(0)
+
 
 
 def listen_for_complete(key):
@@ -89,4 +93,5 @@ def check_port_range(start, num_ports):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, smother_children)
+    signal.signal(signal.SIGTERM, smother_children)
     main()
