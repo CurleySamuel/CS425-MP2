@@ -9,11 +9,11 @@ import threading
 import signal
 from sys import platform
 
-def add_key(key):
+def add_keys(keys_to_add):
     """
     Add key to node's store
     """
-    keys.append(key)
+    keys.append(keys_to_add)
 
 def handle_message(data):
     """
@@ -25,8 +25,8 @@ def handle_message(data):
     if 'action' in message:
         action = message['action']
 
-        if action == 'add':
-            add_key(message['key'])
+        if action == 'force-key':
+            add_keys(message['data'])
 
 def listening_thread(buffer_size):
     """
@@ -91,7 +91,8 @@ def main():
     json_data = sys.argv[3]
     keys = []
 
-    listener = threading.Thread(target = listening_thread, args=[1024])
+    buffer_size = 4096
+    listener = threading.Thread(target = listening_thread, args=[buffer_size])
     listener.daemon = True
     listener.start()
 
