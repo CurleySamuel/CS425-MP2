@@ -1,0 +1,1 @@
+- node.py is throwing some error when delivered a SIGTERM
