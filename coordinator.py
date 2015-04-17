@@ -34,8 +34,7 @@ def main():
 
     # Fill initial node with all keys.
     print colored("Populating system with keys", "yellow")
-    for key in range(0,256):
-        force_key(0, key)
+    feed_initial_keys()
     print colored("\tKeys 0 - 255 entered", "cyan")
 
     # Enter input loop
@@ -62,20 +61,24 @@ def smother_children(signalnum=0, handler=0):
     sys.exit(0)
 
 
-def force_key(node_key, key):
+def feed_initial_keys():
     data = {
         "action": "force_key",
         "data": range(0,256)
     }
-    send_message(node_list[node_key][0], data)
+    send_message(node_list[0][0], data)
 
 
 def send_message(port, data):
     data2 = json.dumps(data)
     s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s2.connect(('',port))
-    s2.send(data2)
-    s2.close()
+    try:
+        s2.connect(('',port))
+        s2.sendall(data2)
+        s2.close()
+    except socket.error:
+        print colored("oh god one of our nodes has died")
+        sys.exit(1)
 
 
 def listen_for_complete(key):
