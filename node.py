@@ -25,7 +25,7 @@ def handle_message(data):
     if 'action' in message:
         action = message['action']
 
-        if action == 'force-key':
+        if action == 'force_key':
             add_keys(message['data'])
             send_ack()
 
