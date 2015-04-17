@@ -63,7 +63,19 @@ def smother_children(signalnum=0, handler=0):
 
 
 def force_key(node_key, key):
-    pass
+    data = {
+        "action": "force_key",
+        "data": range(0,256)
+    }
+    send_message(node_list[node_key][0], data)
+
+
+def send_message(port, data):
+    data2 = json.dumps(data)
+    s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s2.connect(('',port))
+    s2.send(data2)
+    s2.close()
 
 
 def listen_for_complete(key):
@@ -75,8 +87,6 @@ def listen_for_complete(key):
             print colored("oh god unexpected message received\n\t{}", "red").format(data)
     except Exception:
             print colored("oh god unexpected message received\n\t{}", "red").format(data)
-
-
 
 
 def launch_node(key, data={}):
