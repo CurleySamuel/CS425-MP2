@@ -6,6 +6,7 @@ import time
 import signal
 import sys
 import threading
+import signal
 from sys import platform
 
 def add_key(key):
@@ -21,6 +22,7 @@ def handle_message(data):
             add_key(message['key'])
 
 def listening_thread(buffer_size):
+    global s
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((TCP_IP, node_port))
@@ -31,6 +33,10 @@ def listening_thread(buffer_size):
         handle_message(data)
         conn.close()
 
+def term_handler(signal):
+    s.close()
+    exit(0)
+
 def main():
     global TCP_IP
     global coordinator_port
@@ -38,6 +44,8 @@ def main():
     global keys
     global pred_port
     global succ_port
+
+    signal.signal(signal.SIGTERM, term_handler)
 
     if platform == "darwin":
         TCP_IP = socket.gethostbyname(socket.gethostname())
