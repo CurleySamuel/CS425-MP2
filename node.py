@@ -71,7 +71,7 @@ def send_ack():
     """
     Send acknowledgement to coordinator thread
     """
-    encoded_string = json.dump(create_action('ack'))
+    encoded_string = json.dumps(create_action('ack'))
     send_message(coordinator_port, encoded_string)
 
 def main():
