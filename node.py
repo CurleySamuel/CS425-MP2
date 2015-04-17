@@ -86,8 +86,8 @@ def main():
 
     signal.signal(signal.SIGTERM, term_handler)
 
-    coordinator_port = sys.argv[1]
-    node_port = sys.argv[2]
+    coordinator_port = int(sys.argv[1])
+    node_port = int(sys.argv[2])
     json_data = sys.argv[3]
     keys = []
 
