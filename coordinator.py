@@ -8,7 +8,6 @@ import sys
 
 coord_port = 44443
 start_port = 44444
-host = socket.gethostbyname(socket.gethostname())
 node_list = {}
 
 def main():
@@ -19,6 +18,12 @@ def main():
     initialize_ports()
     print colored("\tCoordinator port: ", "cyan") + "\n\t\t{}".format(coord_port)
     print colored("\tNode ports: ", "cyan") + "\n\t\t{} - {}".format(start_port, start_port+254)
+
+    # Bind to our coordinator port
+    global s
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(('', coord_port))
+    s.listen(10)
 
     # Create a new initial empty node.
     print colored("Creating Initial Node", "yellow")
@@ -37,17 +42,18 @@ def main():
     print colored("System Initialized! Entering loop.\n", "yellow")
     while 1:
         command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
+        if command.lower() == "exit":
+            break
 
     # Kill all procreations
     smother_children()
-
 
 def smother_children(signalnum=0, handler=0):
     print colored("\nKilling all nodes", "yellow")
     for key, val in node_list.iteritems():
         val[1].terminate()
     print colored("\tSIGTERMS sent. Giving nodes time to clean up", "cyan")
-    time.sleep(2)
+    time.sleep(1)
     for key, val in node_list.iteritems():
         if val[1].poll() is None:
             print colored("\tSending SIGKILL to {}", "red").format(val[1].pid)
@@ -61,7 +67,16 @@ def force_key(node_key, key):
 
 
 def listen_for_complete(key):
-    pass
+    conn, addr = s.accept()
+    data = conn.recv(2048)
+    try:
+        msg = json.loads(data)
+        if msg["action"].lower() != "ack":
+            print colored("oh god unexpected message received\n\t{}", "red").format(data)
+    except Exception:
+            print colored("oh god unexpected message received\n\t{}", "red").format(data)
+
+
 
 
 def launch_node(key, data={}):
@@ -87,7 +102,7 @@ def initialize_ports():
 def check_port_range(start, num_ports):
     for port in range(start, start + num_ports):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = s.connect_ex((host, port))
+        result = s.connect_ex(('', port))
         s.close()
         if result != 61:
             print "\t\tPort {}: \t".format(port) + colored("Closed", "red")
