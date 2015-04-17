@@ -79,6 +79,7 @@ def send_message(port, data):
     except socket.error:
         print colored("oh god one of our nodes has died")
         sys.exit(1)
+    listen_for_complete(0)
 
 
 def listen_for_complete(key):
