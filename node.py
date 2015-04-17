@@ -45,7 +45,7 @@ def start_listening():
         handle_message(data)
         conn.close()
 
-def term_handler(signal):
+def term_handler(signal, frame):
     """
     Gracefully exit when encountering SIGTERM
     """
