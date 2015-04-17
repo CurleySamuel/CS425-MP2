@@ -27,6 +27,7 @@ def handle_message(data):
 
         if action == 'force-key':
             add_keys(message['data'])
+            send_ack()
 
 def start_listening():
     """

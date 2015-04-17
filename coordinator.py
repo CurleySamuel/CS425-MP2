@@ -114,7 +114,9 @@ def check_port_range(start, num_ports):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = s.connect_ex(('', port))
         s.close()
-        if result != 61:
+        print 'RESULT: ',result
+
+        if result != 61 and result != 111:
             print "\t\tPort {}: \t".format(port) + colored("Closed", "red")
             break
     else:
