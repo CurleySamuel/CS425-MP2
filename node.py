@@ -20,7 +20,7 @@ def handle_message(data):
     Decode message and determine task
     :param data: Message string
     """
-    message = json.load(data)
+    message = json.loads(data)
 
     if 'action' in message:
         action = message['action']
@@ -28,10 +28,11 @@ def handle_message(data):
         if action == 'force-key':
             add_keys(message['data'])
 
-def listening_thread(buffer_size):
+def start_listening():
     """
     Receive incoming messages
     """
+    buffer_size = 4096
     global s
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -91,12 +92,9 @@ def main():
     json_data = sys.argv[3]
     keys = []
 
-    buffer_size = 4096
-    listener = threading.Thread(target = listening_thread, args=[buffer_size])
-    listener.daemon = True
-    listener.start()
-
     send_ack()
+    start_listening()
+
 
 if __name__ == "__main__":
     main()
