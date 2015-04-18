@@ -41,11 +41,46 @@ def main():
     print colored("System Initialized! Entering loop.\n", "yellow")
     while 1:
         command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
-        if command.lower() == "exit":
+        command = command.lower()
+        if command == "exit":
             break
+        parsed = validate(command)
+        if parsed is not None:
+            print "Good command!"
+
+
 
     # Kill all procreations
     smother_children()
+
+
+def validate(command):
+    try:
+        keys = node_list.keys()
+        parsed = command.split()
+        if len(parsed) < 2:
+            print colored("Not enough arguments to function.", "red")
+        elif len(parsed) > 3:
+            print colored("Too many arguments to function.", "red")
+        elif parsed[0] not in ["join", "find", "leave", "show"]:
+            print colored("Not a recognized command.", "red")
+        elif parsed[0] == "show" and parsed[1] == "all":
+            return parsed[:2]
+        elif parsed[0] == "join" and int(parsed[1]) not in range(0,256):
+            print colored("Key out of range.", "red")
+        elif parsed[0] == "find" and int(parsed[1]) not in keys:
+            print colored("Node doesn't exist.", "red")
+        elif parsed[0] == "find" and int(parsed[2]) not in range(0,256):
+            print colored("Key not in allowed range.", "red")
+        elif parsed[0] in ["leave", "show"] and int(parsed[1]) not in keys:
+            print colored("Node doesn't exist.", "red")
+        else:
+            return parsed
+        return None
+    except ValueError:
+        print colored("Key or node value not an integer.", "red")
+        return None
+
 
 def smother_children(signalnum=0, handler=0):
     print colored("\nKilling all nodes", "yellow")
