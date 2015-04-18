@@ -5,6 +5,7 @@ import json
 import time
 import signal
 import sys
+import random
 
 coord_port = 44443
 start_port = 44444
@@ -47,7 +48,42 @@ def main():
         parsed = validate(command)
         if parsed is None:
             continue
-
+        if parsed[0] == "join":
+            data = {
+                "action": "create",
+                "existing_node": node_list[random.choice(node_list.keys())][0]
+            }
+            launch_node(int(parsed[1]), data)
+            listen_for_complete()
+            print colored("Node created", "green")
+        elif parsed[0] == "find":
+            data = {
+                "action": "locate",
+                "key": int(parsed[2])
+            }
+            send_message(node_list[int(parsed[1])][0], data)
+            rsp = listen_for_complete()
+            print colored("Key located at node {}", "green").format(int(rsp["found"])-start_port)
+        elif parsed[0] == "leave":
+            data = {
+                "action": "leave"
+            }
+            send_message(node_list[int(parsed[1])][0], data)
+            listen_for_complete()
+            print colored("Node successfully removed.", "green")
+        elif parsed[0] == "show":
+            data = {
+                "action": "list"
+            }
+            if parsed[1] != "all":
+                send_message(node_list[int(parsed[1])][0], data)
+                rsp = listen_for_complete()
+                print colored("Keys stored: ", "green") + ' '.join(rsp['keys'])
+            else:
+                for key,val in node_list.iteritems():
+                    send_message(val[0], data)
+                    rsp = listen_for_complete()
+                    print colored("{}: ").format(key) + ' '.join(rsp['keys'])
 
 
     # Kill all procreations
@@ -111,6 +147,7 @@ def feed_initial_keys():
 
 def send_message(port, data):
     data2 = json.dumps(data)
+    print colored("(DEBUG) Sending Message to Node {}\n\t{}", "cyan").format(port-start_port,data2)
     s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s2.connect(('',port))
@@ -122,21 +159,20 @@ def send_message(port, data):
     listen_for_complete(0)
 
 
-def listen_for_complete(key):
+def listen_for_complete(key=0):
+    # Key currently not used. Leaving for now in case we need.
     conn, addr = s.accept()
     data = conn.recv(2048)
     try:
         msg = json.loads(data)
         if msg["action"].lower() != "ack":
             print colored("oh god unexpected message received\n\t{}", "red").format(data)
+        return msg
     except Exception:
             print colored("oh god unexpected message received\n\t{}", "red").format(data)
 
 
-def launch_node(key, data={}):
-    if key in node_list.keys():
-        print colored("Node with key already exists!", "red")
-        return
+def launch_node(key, data={"action": "create"}):
     node_port = key + start_port
     json_data = json.dumps(data)
     node_list[key] = (node_port, subprocess.Popen(["python", "node.py", str(coord_port), str(node_port), json_data]))
