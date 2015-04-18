@@ -45,8 +45,8 @@ def main():
         if command == "exit":
             break
         parsed = validate(command)
-        if parsed is not None:
-            print "Good command!"
+        if parsed is None:
+            continue
 
 
 
@@ -68,6 +68,8 @@ def validate(command):
             return parsed[:2]
         elif parsed[0] == "join" and int(parsed[1]) not in range(0,256):
             print colored("Key out of range.", "red")
+        elif parsed[0] == "join" and int(parsed[1]) in keys:
+            print colored("Node already exists.", "red")
         elif parsed[0] == "find" and int(parsed[1]) not in keys:
             print colored("Node doesn't exist.", "red")
         elif parsed[0] == "find" and int(parsed[2]) not in range(0,256):
@@ -75,7 +77,10 @@ def validate(command):
         elif parsed[0] in ["leave", "show"] and int(parsed[1]) not in keys:
             print colored("Node doesn't exist.", "red")
         else:
-            return parsed
+            # Success!
+            if parsed[0] == "find":
+                return parsed[:3]
+            return parsed[:2]
         return None
     except ValueError:
         print colored("Key or node value not an integer.", "red")
