@@ -150,7 +150,7 @@ Following functions used to listen for messages
 #TODO: Condense next 4 functions into one general listening function
 def listen_for_successor_query():
     """
-    Waits until the successor information from a specific node is returned
+    Waits until the successor information of a specific node is returned
     """
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
@@ -164,7 +164,7 @@ def listen_for_successor_query():
 
 def listen_for_predecessor_query():
     """
-    Waits until the successor information from a specific node is returned
+    Waits until the predecessor information of a specific node is returned
     """
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
