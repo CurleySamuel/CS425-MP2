@@ -18,16 +18,16 @@ def add_keys(keys_to_add):
 def get_id(port):
     """
     Get id of node from port
-    EX: Start port is 5001, port of a certain node is 5002, then the id for that node is 2
+    EX: Start port is 5000, port of a certain node is 5001, then the id for that node is 1
     """
-    return port - start_port + 1
+    return port - start_port
 
 def get_port(id):
     """
     Given a node id, determines the port to communicate with
-    EX: Start port is 5001, id of a certain node is 2, then the port for that node is 5002
+    EX: Start port is 5000, id of a certain node is 2, then the port for that node is 5002
     """
-    return start_port + id -1
+    return start_port + id
 
 """
 Following functions used for message passing
@@ -41,9 +41,14 @@ def send_message(node_id, data):
     port = node_id
     if node_id != coordinator_port:
        port = get_port(node_id)
-    s2.connect(('', port))
-    s2.send(data)
-    s2.close()
+
+    try:
+        s2.connect(('', port))
+        s2.send(data)
+        s2.close()
+
+    except:
+        print "Error sending message from node " + self_id
 
 
 def send_ack():
@@ -58,7 +63,7 @@ def send_found_response(key_to_find, successor_id):
     """
     Send node containing given key to coordinator
     """
-    encoded_string = json.loads({'action':'ACK','found':successor_id})
+    encoded_string = json.dumps({'action':'ACK','found':successor_id})
     send_message(coordinator_port, encoded_string)
 
 
@@ -132,7 +137,7 @@ def ask_next_node_to_move_keys():
     """
     Ask successor to move keys in the range (predecessor, current node] to the current node
     """
-    encoded_string = json.loads({'action':'move_keys', 'begin_range':self_predecessor_id, 'end_range':self_id})
+    encoded_string = json.dumps({'action':'move_keys', 'begin_range':self_predecessor_id, 'end_range':self_id})
     send_message(self_successor_id, encoded_string)
 
 
@@ -140,7 +145,7 @@ def notify_node_to_update_finger_table(out_of_date_node_id, new_node_id, i):
     """
     Notify a node to update it's finger table with a new node that joined in
     """
-    encoded_string = json.loads({'action':'update_finger_table','new_node_id':new_node_id, 'i':i})
+    encoded_string = json.dumps({'action':'update_finger_table','new_node_id':new_node_id, 'i':i})
     send_message(out_of_date_node_id, encoded_string)
 
 
@@ -258,15 +263,11 @@ def start_listening():
     s.bind(('', self_id))
     s.listen(1)
 
-    try:
+    while 1:
         conn, addr = s.accept()
         data = conn.recv(buffer_size)
         handle_message(data)
         #conn.close()
-
-    except:
-        pass
-
 
 def term_handler(signal, frame):
     """
@@ -433,22 +434,24 @@ def main():
     self_port = int(sys.argv[2])
     self_id = get_id(self_port)
 
-    json_data = sys.argv[3]
-    arbitrary_node_port = int(sys.argv[4]) #If initial node, expecting 0
+    json_data = json.loads(sys.argv[3])
+    arbitrary_node_port = None
+    if 'existing_node' in json_data:
+        arbitrary_node_port = json_data['existing_node']
 
     m = 5 #TODO: Currently hardcoding identifier size
     keys = []
-    finger_starts = []
-    intervals = []
-    successors = []
+    finger_starts = {}
+    intervals = {}
+    successors = {}
 
-    if arbitrary_node_port != 0:
+    if arbitrary_node_port is not None:
         arbitrary_node_id = get_id(arbitrary_node_port)
         init_finger_table(arbitrary_node_id)
         update_others()
         ask_next_node_to_move_keys()
     else:
-        for i in range(1,m):
+        for i in range(1,m+1):
             finger_starts[i] = calculate_finger_start(i)
             intervals[i] = (finger_starts[i], calculate_finger_start(i+1))
             successors[i] = self_id
