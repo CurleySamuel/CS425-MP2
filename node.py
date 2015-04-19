@@ -47,6 +47,7 @@ def send_message(node_id, data):
         s2.send(data)
         s2.close()
 
+
     except:
         print "Error sending message from node " + self_id
 
