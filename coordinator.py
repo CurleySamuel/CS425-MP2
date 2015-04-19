@@ -161,15 +161,20 @@ def send_message(port, data):
 
 def listen_for_complete(key=0):
     # Key currently not used. Leaving for now in case we need.
-    conn, addr = s.accept()
-    data = conn.recv(2048)
-    try:
-        msg = json.loads(data)
-        if msg["action"].lower() != "ack":
-            print colored("oh god unexpected message received\n\t{}", "red").format(data)
-        return msg
-    except Exception:
-            print colored("oh god unexpected message received\n\t{}", "red").format(data)
+    while 1:
+        conn, addr = s.accept()
+        data = conn.recv(2048)
+        try:
+            msg = json.loads(data)
+            if msg["action"].lower() == "ack":
+                return msg
+            elif msg["action"].lower() == "debug":
+                print colored("(DEBUG) {}", "cyan").format(msg["data"])
+            else:
+                print colored("oh god unexpected message received\n\t{}", "red").format(data)
+        except Exception:
+                print colored("oh god unexpected message received\n\t{}", "red").format(data)
+                return None
 
 
 def launch_node(key, data={"action": "create"}):
