@@ -42,14 +42,14 @@ def send_message(node_id, data):
     if node_id != coordinator_port:
        port = get_port(node_id)
 
-    try:
-        s2.connect(('', port))
-        s2.send(data)
-        s2.close()
+    #try:
+    s2.connect(('', port))
+    s2.send(data)
+    s2.close()
 
 
-    except:
-        print "Error sending message from node " + self_id
+    #except:
+    #    print "Error sending message from node " + self_id
 
 
 def send_ack():
@@ -124,6 +124,7 @@ def ask_arbitrary_node_for_successor(arbitrary_node_id, key_to_find):
     """
     encoded_message = json.dumps({'action':'find_successor', 'key':key_to_find, 'query_port':self_id})
     send_message(arbitrary_node_id, encoded_message)
+
 
 
 def ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id):
@@ -261,14 +262,15 @@ def start_listening():
     global s
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('', self_id))
-    s.listen(1)
+    s.bind(('', get_port(self_id)))
+    s.listen(5)
 
     while 1:
         conn, addr = s.accept()
         data = conn.recv(buffer_size)
         handle_message(data)
-        #conn.close()
+        conn.shutdown(socket.SHUT_RDWR)
+        conn.close()
 
 def term_handler(signal, frame):
     """

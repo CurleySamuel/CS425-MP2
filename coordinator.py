@@ -24,7 +24,7 @@ def main():
     global s
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('', coord_port))
-    s.listen(10)
+    s.listen(20)
 
     # Create a new initial empty node.
     print colored("Creating Initial Node", "yellow")
@@ -152,10 +152,11 @@ def send_message(port, data):
     try:
         s2.connect(('',port))
         s2.sendall(data2)
+        s2.shutdown(socket.SHUT_RDWR)
         s2.close()
-    except socket.error:
-        print colored("oh god one of our nodes has died")
-        sys.exit(1)
+    except socket.error as e:
+        print colored("oh god one of our nodes has died - {}").format(e)
+        smother_children()
     listen_for_complete(0)
 
 
@@ -164,6 +165,7 @@ def listen_for_complete(key=0):
     while 1:
         conn, addr = s.accept()
         data = conn.recv(2048)
+        print colored("(DEBUG) Received {}", "cyan").format(data)
         try:
             msg = json.loads(data)
             if msg["action"].lower() == "ack":
@@ -171,10 +173,11 @@ def listen_for_complete(key=0):
             elif msg["action"].lower() == "debug":
                 print colored("(DEBUG) {}", "cyan").format(msg["data"])
             else:
-                print colored("oh god unexpected message received\n\t{}", "red").format(data)
+                print colored("oh god unexpected message received (else)\n\t{}", "red").format(data)
         except Exception:
-                print colored("oh god unexpected message received\n\t{}", "red").format(data)
-                return None
+            print colored("oh god unexpected message received\n\t{}", "red").format(data)
+            return None
+
 
 
 def launch_node(key, data={"action": "create"}):
