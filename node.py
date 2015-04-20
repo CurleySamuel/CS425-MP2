@@ -83,7 +83,7 @@ def respond_with_successor(query_node_id):
     """
     Send successor information back to query node
     """
-    encoded_string = json.dumps({'action':'successor retrieved','successor_id':self_successor_id})
+    encoded_string = json.dumps({'action':'successor_retrieved','successor_id':self_successor_id})
     send_message(query_node_id, encoded_string)
 
 def retrieve_predecessor(node_id):
@@ -249,7 +249,7 @@ def handle_message(data):
             respond_with_successor(message['query_node_id'])
 
         elif action == 'retrieve_predecessor':
-            respond_with_successor(message['query_node_id'])
+            respond_with_predecessor(message['query_node_id'])
 
         elif action == 'update_finger_table':
             update_finger_table(message['new_node_id'], message['i'])
@@ -270,8 +270,6 @@ def start_listening():
     """
     Receive incoming messages
     """
-    s.listen(5)
-
     while 1:
         conn, addr = s.accept()
         data = conn.recv(buffer_size)
@@ -323,9 +321,11 @@ def find_predecessor(key_to_find, query_node_id):
     predecessor is greater than the given key
     """
     print str(self_id) + " finding predecessor"
+    """
     if self_predecessor_id == self_successor_id:
         send_back_predecessor(key_to_find, query_node_id)
         return
+    """
     current_node = self_id
     current_successor = self_successor_id
 
@@ -388,11 +388,14 @@ def init_finger_table(arbitrary_node_id):
     set_predecessor(self_successor_id, self_id)
 
     for i in range(1,m-1):
+        print str(self_id) + "working on entry - " + str(i) 
         finger_starts[i+1] = calculate_finger_start(i+1)
         intervals[i+1] = (finger_starts[i+1], calculate_finger_start(i+2))
         if self_id <= finger_starts[i+1] < successors[i]:
+            print "true"
             successors[i+1] = successors[i]
         else:
+            print "false"
             ask_arbitrary_node_for_successor(arbitrary_node_id, finger_starts[i+1])
             successors[i+1] = listen_for_successor()
 
@@ -411,7 +414,7 @@ def update_others():
     Update the finger tables of other nodes to reflect the new node joining
     """
     for i in range(1,m):
-        find_predecessor(self_id - pow(2,i-1))
+        find_predecessor(self_id - pow(2,i-1), self_id)
         predecessor_id = listen_for_predecessor()
         notify_node_to_update_finger_table(predecessor_id, self_id, i)
 
@@ -473,6 +476,7 @@ def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('', get_port(self_id)))
+    s.listen(5)
 
     m = 5 #TODO: Currently hardcoding identifier size
     keys = []
