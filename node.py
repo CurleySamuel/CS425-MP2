@@ -15,6 +15,15 @@ def add_keys(keys_to_add):
     """
     keys.extend(keys_to_add)
 
+def is_in_range(value, beginning, end):
+    """
+    Check if value is in circular range
+    """
+    if beginning < end:
+        return beginning <= value < end
+    else:
+        return not (beginning > value >= end)
+
 def get_id(port):
     """
     Get id of node from port
@@ -362,7 +371,9 @@ def calculate_finger_start(k):
     """
     Calculate start of finger - (n + 2^(k-1)) mod 2^m
     """
-    return (self_id + pow(2,k-1) ) % pow(2,m)
+    val = (self_id + pow(2,k-1) ) % pow(2,m)
+    print str(self_id) +  " calculated finger start - " + str(val)
+    return val
 
 def set_predecessor(out_of_date_node_id, new_predecessor):
     """
@@ -377,21 +388,22 @@ def init_finger_table(arbitrary_node_id):
     """
     print str(self_id) + "init_finger_table"
     finger_starts[1] = calculate_finger_start(1)
-    intervals[1] = (finger_starts[1], calculate_finger_start(2))
+    #intervals[1] = (finger_starts[1], calculate_finger_start(2))
     ask_arbitrary_node_for_successor(arbitrary_node_id, finger_starts[1])
     successors[1] = listen_for_successor()
+    global self_successor_id
     self_successor_id = successors[1]
 
     print str(self_id) + " first finger table entry created"
     retrieve_predecessor(self_successor_id)
     self_predecessor_id = listen_for_predecessor_query()
     set_predecessor(self_successor_id, self_id)
-
+    
     for i in range(1,m-1):
         print str(self_id) + "working on entry - " + str(i) 
         finger_starts[i+1] = calculate_finger_start(i+1)
-        intervals[i+1] = (finger_starts[i+1], calculate_finger_start(i+2))
-        if self_id <= finger_starts[i+1] < successors[i]:
+        #intervals[i+1] = (finger_starts[i+1], calculate_finger_start(i+2))
+        if is_in_range(self_id, successors[i],finger_starts[i+1]):
             print "true"
             successors[i+1] = successors[i]
         else:
@@ -453,7 +465,6 @@ def main():
     global successors
 
     global self_predecessor_id
-    global self_successor_id
     global self_id
     global m #number of bits in ID
 
@@ -484,6 +495,7 @@ def main():
     intervals = {}
     successors = {}
 
+    import ipdb; ipdb.set_trace()
     print str(self_id) + "about to join - " + str(self_port)
     if arbitrary_node_port is not None:
         arbitrary_node_id = get_id(arbitrary_node_port)
