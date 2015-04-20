@@ -38,14 +38,17 @@ def send_message(node_id, data):
     Create socket and send data
     """
     s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     port = node_id
     if node_id != coordinator_port:
        port = get_port(node_id)
 
     #try:
+    print str(self_id) + "sending " + str(data) + " to " + str(port)
     s2.connect(('', port))
     s2.send(data)
     s2.close()
+    print str(self_id) + "sent " + str(data) + " to " + str(port)
 
 
     #except:
@@ -104,6 +107,7 @@ def send_back_predecessor(key_to_find, query_node_id):
     """
     encoded_string = json.dumps({'action':'predecessor_found', 'key':key_to_find, 'predecessor_id':self_id})
     send_message(query_node_id, encoded_string)
+    print str(self_id) + "sending send-back_predecessor message"
 
 
 def send_back_successor(successor, query_node):
@@ -122,8 +126,9 @@ def ask_arbitrary_node_for_successor(arbitrary_node_id, key_to_find):
     Ask an arbitrary node to find the successor for the given key
     :return: successor node
     """
-    encoded_message = json.dumps({'action':'find_successor', 'key':key_to_find, 'query_port':self_id})
+    encoded_message = json.dumps({'action':'find_successor', 'key':key_to_find, 'query_node_id':self_id})
     send_message(arbitrary_node_id, encoded_message)
+    print str(self_id) + " asked arbitrary node for successor"
 
 
 
@@ -131,8 +136,9 @@ def ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id):
     """
     Ask the next node to run find_predecessor
     """
-    encoded_string = json.dumps({'action':'find_predecessor', 'key':key_to_find, 'query_node':query_node_id})
+    encoded_string = json.dumps({'action':'find_predecessor', 'key':key_to_find, 'query_node_id':query_node_id})
     send_message(next_node_id, encoded_string)
+    print str(self_id) + "sent ask-node message to " + str(next_node_id)
 
 
 def ask_next_node_to_move_keys():
@@ -159,6 +165,7 @@ def listen_for_successor_query():
     """
     Waits until the successor information of a specific node is returned
     """
+    print str(self_id) + "Listening for successor query"
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
     try:
@@ -187,8 +194,10 @@ def listen_for_successor():
     """
     Waits until the successor for a given key is found
     """
+    print str(self_id) + "listening for successor"
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
+    print str(self_id) + "successor data received"
     try:
         message = json.loads(data)
         if message["action"] != "successor_found":
@@ -218,6 +227,7 @@ def handle_message(data):
     Decode message and determine task
     """
     message = json.loads(data)
+    print str(self_id) + "handling message - " + data
 
     if 'action' in message:
         action = message['action']
@@ -260,20 +270,12 @@ def start_listening():
     """
     Receive incoming messages
     """
-    global buffer_size
-    buffer_size = 4096
-    global s
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('', get_port(self_id)))
     s.listen(5)
 
     while 1:
         conn, addr = s.accept()
         data = conn.recv(buffer_size)
         handle_message(data)
-        conn.shutdown(socket.SHUT_RDWR)
-        conn.close()
 
 def term_handler(signal, frame):
     """
@@ -301,10 +303,17 @@ def find_successor(key_to_find, query_node_id):
     Find successor of given key
     :param query_node: node that initiated the query
     """
+    if self_predecessor_id == self_successor_id:
+        send_back_successor(self_id, query_node_id)
+        return
+
     find_predecessor(key_to_find, query_node_id)
     predecessor = listen_for_predecessor()
+    print str(self_id) + "predecessor found - " + str(predecessor)
     retrieve_successor(predecessor)
+    print str(self_id) + "finding successor"
     successor = listen_for_successor_query()
+    print str(self_id) + "successor found " + str(successor)
     send_back_successor(successor, query_node_id)
 
 
@@ -313,15 +322,25 @@ def find_predecessor(key_to_find, query_node_id):
     Finds the predecessor by moving forward in the chord circle till it finds a node whose value is less than the key \
     predecessor is greater than the given key
     """
+    print str(self_id) + " finding predecessor"
+    if self_predecessor_id == self_successor_id:
+        send_back_predecessor(key_to_find, query_node_id)
+        return
     current_node = self_id
     current_successor = self_successor_id
 
     if current_node < key_to_find <= current_successor:
         #Predecessor found!
+        print str(self_id) + "predecessor found"
         send_back_predecessor(key_to_find, query_node_id)
     else:
+        print str(self_id) + "finding closest predecessor"
         next_node_id = closest_preceding_finger(key_to_find)
+        print str(self_id) + "closest preceding finger - " + str(next_node_id)
+        if next_node_id == self_id: 
+            send_back_predecessor(key_to_find, query_node_id)
         ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id)
+        print str(self_id) + "asked next node"
 
 
 def closest_preceding_finger(key_to_find):
@@ -356,12 +375,14 @@ def init_finger_table(arbitrary_node_id):
     """
     Use an arbitrary node to initialize the new node's finger table
     """
+    print str(self_id) + "init_finger_table"
     finger_starts[1] = calculate_finger_start(1)
     intervals[1] = (finger_starts[1], calculate_finger_start(2))
     ask_arbitrary_node_for_successor(arbitrary_node_id, finger_starts[1])
     successors[1] = listen_for_successor()
     self_successor_id = successors[1]
 
+    print str(self_id) + " first finger table entry created"
     retrieve_predecessor(self_successor_id)
     self_predecessor_id = listen_for_predecessor_query()
     set_predecessor(self_successor_id, self_id)
@@ -433,6 +454,7 @@ def main():
     global self_id
     global m #number of bits in ID
 
+    
     signal.signal(signal.SIGTERM, term_handler)
 
     coordinator_port = int(sys.argv[1])
@@ -445,12 +467,20 @@ def main():
     if 'existing_node' in json_data:
         arbitrary_node_port = json_data['existing_node']
 
+    global s
+    global buffer_size
+    buffer_size = 4096
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('', get_port(self_id)))
+
     m = 5 #TODO: Currently hardcoding identifier size
     keys = []
     finger_starts = {}
     intervals = {}
     successors = {}
 
+    print str(self_id) + "about to join - " + str(self_port)
     if arbitrary_node_port is not None:
         arbitrary_node_id = get_id(arbitrary_node_port)
         init_finger_table(arbitrary_node_id)
@@ -462,6 +492,7 @@ def main():
             intervals[i] = (finger_starts[i], calculate_finger_start(i+1))
             successors[i] = self_id
         self_predecessor_id = self_id
+        self_successor_id = self_id
 
     send_ack()
     start_listening()
