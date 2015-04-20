@@ -10,9 +10,14 @@ import random
 coord_port = 44443
 start_port = 44444
 node_list = {}
+outfile = sys.stdout
 
 def main():
+    global outfile
     global node_list
+
+    if len(sys.argv) > 1:
+        outfile = open(sys.argv[1], 'w')
 
     # Confirm that port range is currently available.
     print colored("Initializing Ports", "yellow")
@@ -75,11 +80,11 @@ def main():
             }
             if parsed[1] != "all":
                 rsp = send_message(node_list[int(parsed[1])][0], data)
-                print colored("Keys stored: ", "green") + ', '.join(map(str, rsp['data']))
+                print >> outfile, "{} ".format(parsed[1]) + ' '.join(map(str, rsp['data']))
             else:
                 for key,val in node_list.iteritems():
                     rsp = send_message(val[0], data)
-                    print colored("{}: ", "green").format(key) + ', '.join(map(str,rsp['data']))
+                    print >> outfile, "{} ".format(key) + ' '.join(map(str,rsp['data']))
 
     # Kill all procreations
     smother_children()
@@ -129,6 +134,8 @@ def smother_children(signalnum=0, handler=0):
             print colored("\tSending SIGKILL to {}", "red").format(val[1].pid)
             val[1].kill()
     print colored("\tAll processes killed. Exiting.", "cyan")
+    if outfile != sys.stdout:
+        outfile.close()
     sys.exit(0)
 
 
