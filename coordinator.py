@@ -30,7 +30,7 @@ def main():
     print colored("Creating Initial Node", "yellow")
     launch_node(0)
     print colored("\tNode is launched, waiting for response", "cyan")
-    listen_for_complete(0)
+    listen_for_complete()
     print colored("\tNode is responding", "cyan")
 
     # Fill initial node with all keys.
@@ -61,30 +61,25 @@ def main():
                 "action": "locate",
                 "key": int(parsed[2])
             }
-            send_message(node_list[int(parsed[1])][0], data)
-            rsp = listen_for_complete()
+            rsp = send_message(node_list[int(parsed[1])][0], data)
             print colored("Key located at node {}", "green").format(int(rsp["found"])-start_port)
         elif parsed[0] == "leave":
             data = {
                 "action": "leave"
             }
-            send_message(node_list[int(parsed[1])][0], data)
-            listen_for_complete()
+            rsp = send_message(node_list[int(parsed[1])][0], data)
             print colored("Node successfully removed.", "green")
         elif parsed[0] == "show":
             data = {
                 "action": "list"
             }
             if parsed[1] != "all":
-                send_message(node_list[int(parsed[1])][0], data)
-                rsp = listen_for_complete()
-                print colored("Keys stored: ", "green") + ' '.join(rsp['keys'])
+                rsp = send_message(node_list[int(parsed[1])][0], data)
+                print colored("Keys stored: ", "green") + ', '.join(map(str, rsp['data']))
             else:
                 for key,val in node_list.iteritems():
-                    send_message(val[0], data)
-                    rsp = listen_for_complete()
-                    print colored("{}: ").format(key) + ' '.join(rsp['keys'])
-
+                    rsp = send_message(val[0], data)
+                    print colored("{}: ", "green").format(key) + ', '.join(map(str,rsp['data']))
 
     # Kill all procreations
     smother_children()
@@ -157,11 +152,10 @@ def send_message(port, data):
     except socket.error as e:
         print colored("oh god one of our nodes has died - {}").format(e)
         smother_children()
-    listen_for_complete(0)
+    return listen_for_complete()
 
 
-def listen_for_complete(key=0):
-    # Key currently not used. Leaving for now in case we need.
+def listen_for_complete():
     while 1:
         conn, addr = s.accept()
         data = conn.recv(2048)

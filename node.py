@@ -13,7 +13,7 @@ def add_keys(keys_to_add):
     """
     Add keys to node's store
     """
-    keys.append(keys_to_add)
+    keys.extend(keys_to_add)
 
 def get_id(port):
     """
@@ -52,11 +52,11 @@ def send_message(node_id, data):
     #    print "Error sending message from node " + self_id
 
 
-def send_ack():
+def send_ack(data=None):
     """
     Send acknowledgement to coordinator thread
     """
-    encoded_string = json.dumps({'action':'ACK'})
+    encoded_string = json.dumps({'action':'ACK', 'data':data})
     send_message(coordinator_port, encoded_string)
 
 
@@ -249,6 +249,9 @@ def handle_message(data):
 
         elif action == 'move_keys':
             move_keys(message['begin_range'], message['end_range'])
+
+        elif action == 'list':
+            send_ack(keys)
 
     start_listening()
 
