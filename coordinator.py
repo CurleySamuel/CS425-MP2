@@ -121,6 +121,8 @@ def validate(command):
     except ValueError:
         print colored("Key or node value not an integer.", "red")
         return None
+    except IndexError:
+        print colored("Invalid command.", "red")
 
 
 def smother_children(signalnum=0, handler=0):
