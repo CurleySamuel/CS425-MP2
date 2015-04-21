@@ -11,10 +11,10 @@ coord_port = 44443
 start_port = 44444
 node_list = {}
 outfile = sys.stdout
-benchmark_mode = False
-benchmark_P = 4
-benchmark_F = 64
-benchmark_node_list = []
+benchmark_mode = True
+benchmark_P = 100
+benchmark_F = 100
+benchmark_node_list = [0]
 
 def benchmark_command():
     for x in range(0,benchmark_P):
@@ -49,6 +49,7 @@ def main():
     # Bind to our coordinator port
     global s
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(('', coord_port))
     s.listen(20)
 
@@ -72,7 +73,7 @@ def main():
                 command = gen.next()
             except StopIteration:
                 print "Benchmark Complete"
-                sys.exit(0)
+                smother_children()
         else:
             command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
         command = command.lower()
@@ -88,7 +89,7 @@ def main():
             }
             launch_node(int(parsed[1]), data)
             listen_for_complete()
-            print colored("Node created", "green")
+            print colored("Node {} created", "green").format(int(parsed[1]))
         elif parsed[0] == "find":
             data = {
                 "action": "locate",
@@ -184,7 +185,7 @@ def feed_initial_keys():
 
 def send_message(port, data):
     data2 = json.dumps(data)
-    print colored("(DEBUG) Sending Message to Node {}\n\t{}", "cyan").format(port-start_port,data2)
+    #print colored("(DEBUG) Sending Message to Node {}\n\t{}", "cyan").format(port-start_port,data2)
     s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s2.connect(('',port))
@@ -201,13 +202,14 @@ def listen_for_complete():
     while 1:
         conn, addr = s.accept()
         data = conn.recv(2048)
-        print colored("(DEBUG) Received {}", "cyan").format(data)
+        #print colored("(DEBUG) Received {}", "cyan").format(data)
         try:
             msg = json.loads(data)
             if msg["action"].lower() == "ack":
                 return msg
             elif msg["action"].lower() == "debug":
-                print colored("(DEBUG) {}", "cyan").format(msg["data"])
+                #    print colored("(DEBUG) {}", "cyan").format(msg["data"])
+                pass
             else:
                 print colored("oh god unexpected message received (else)\n\t{}", "red").format(data)
         except Exception:
