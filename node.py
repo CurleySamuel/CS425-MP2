@@ -348,6 +348,9 @@ def handle_message(data):
         elif action == 'set_predecessor':
             global self_predecessor_id
             self_predecessor_id = message['predecessor_id']
+            encoded_string = json.dumps({'action':'predecessor_updated'})
+            send_message(int(message['query_node_id']), encoded_string) 
+            
             print str(self_id) + " predecessor set to {}".format(self_predecessor_id)
 
         elif action == 'move_keys':
@@ -475,7 +478,7 @@ def set_predecessor(out_of_date_node_id, new_predecessor):
     """
     Update the predecessor of given node with a new node that joined
     """
-    encoded_string = json.dumps({'action':'set_predecessor', 'predecessor_id':new_predecessor})
+    encoded_string = json.dumps({'action':'set_predecessor', 'predecessor_id':new_predecessor, 'query_node_id':self_id})
     send_message(out_of_date_node_id, encoded_string)
 
 
@@ -494,6 +497,7 @@ def init_finger_table(arbitrary_node_id):
     global self_predecessor_id
     self_predecessor_id = listen_for_predecessor_query()
     set_predecessor(successors[1], self_id)
+    wait_for_predecessor_to_update()
 
     for i in range(1,m):
         print str(self_id) + "working on entry - " + str(i)
@@ -600,11 +604,31 @@ def update_others():
             wait_for_node_to_update()
         print str(self_id) + " update others iteration complete"
 
+def wait_for_predecessor_to_update():
+    """
+    Waits until all the keys have been transferred
+    """
+    conn, addr = s.accept()
+    data = conn.recv(buffer_size)
+    try:
+        message = json.loads(data)
+        if message["action"] != "predecessor_updated":
+            print "Bad predecessor update Message..."
+        return
+    except Exception:
+            print "Bad Key Transfer Message..."
+
+
 
 def leave():
     """
     leave network
     """
+
+    if successors[1] != self_id and self_predecessor_id != self_id:
+        set_predecessor(successors[1], self_predecessor_id)
+        wait_for_predecessor_to_update()
+        
     for i in range(1,m+1):
         print str(self_id) + ' i:'+ str(i)
         val = (self_id - pow(2,i-1) + 1) % pow(2,m)
@@ -622,7 +646,7 @@ def leave():
         print str(self_id) + " update others iteration complete"
 
     encoded_string = json.dumps({'action':'force_key', 'data':keys})
-    send_message(successors[i], encoded_string)
+    send_message(successors[1], encoded_string)
     send_ack()
     print 'left'
     exit()
@@ -635,7 +659,7 @@ def update_finger_table_remove(new_node_id, i, query_node_id, delete_node_succes
     print str(self_id) + " updating finger table"
     if successors[i] == new_node_id:
         successors[i] = delete_node_successor
-        if self_predecessor_id != new_node_id and self_predecessor_id != query_node and self_predecessor_id != self_id:
+        if self_predecessor_id != new_node_id and self_predecessor_id != query_node_id and self_predecessor_id != self_id:
             notify_node_to_update_finger_table_leave(self_predecessor_id, new_node_id, i, self_id, delete_node_successor)
             wait_for_node_to_update_leave()
     send_back_update_complete_leave(query_node_id)
@@ -700,7 +724,7 @@ def main():
     s.bind(('', get_port(self_id)))
     s.listen(5)
 
-    m = 3 #TODO: Currently hardcoding identifier size
+    m = 8 #TODO: Currently hardcoding identifier size
     keys = []
     finger_starts = {}
     intervals = {}
@@ -723,6 +747,7 @@ def main():
 
     send_ack()
     start_listening()
+
 
 if __name__ == "__main__":
     main()
