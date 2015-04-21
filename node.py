@@ -19,7 +19,7 @@ def is_in_range_left_inclusive(value, beginning, end):
     """
     Check if value is in circular range
     """
-    
+
     if beginning < end:
         return beginning <= value < end
     elif beginning > end:
@@ -31,7 +31,7 @@ def is_in_range_right_inclusive(value, beginning, end):
     """
     Check if value is in circular range
     """
-    
+
     if beginning < end:
         return beginning < value <= end
     elif beginning > end:
@@ -43,27 +43,27 @@ def is_in_range_both_exclusive(value, beginning, end):
     """
     Check if value is in circular range
     """
-    
+
     if beginning < end:
         return beginning < value < end
     elif beginning > end:
         return not is_in_range_both_inclusive(value, end, beginning)
     else:
         if value == beginning:
-            return False 
+            return False
         return True
 
 def is_in_range_both_inclusive(value, beginning, end):
     """
     Check if value is in circular range
     """
-    
+
     if beginning < end:
         return beginning <= value <= end
     elif beginning > end:
         return not is_in_range_both_exclusive(value, end, beginning)
     else:
-        return True 
+        return True
 
 
 def get_id(port):
@@ -84,6 +84,14 @@ def get_port(id):
 Following functions used for message passing
 """
 
+def add_to_count():
+    s3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s3.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s3.connect(('', 60001))
+    s3.send("Count!")
+    s3.close()
+
+
 def send_message(node_id, data):
     """
     Create socket and send data
@@ -100,6 +108,8 @@ def send_message(node_id, data):
     s2.send(data)
     s2.close()
     print str(self_id) + "sent " + str(data) + " to " + str(get_id(port))
+
+    add_to_count()
 
 
     #except:
@@ -223,7 +233,7 @@ def listen_for_successor_query():
         message = json.loads(data)
         if message["action"] != "successor_retrieved":
             print 'bad successor query message...'
-            print data 
+            print data
         return message['successor_id']
     except Exception:
             print "Bad Successor Message..."
@@ -288,7 +298,7 @@ def wait_for_key_transfer_to_complete():
         if message["action"] != "force_key":
             print "Bad Key Transfer Message..."
         add_keys(message['data'])
-        return 
+        return
     except Exception:
             print "Bad Key Transfer Message..."
 
@@ -417,7 +427,7 @@ def find_predecessor(key_to_find, query_node_id):
         print str(self_id) + "finding closest predecessor"
         next_node_id = closest_preceding_finger(key_to_find)
         print str(self_id) + "closest preceding finger - " + str(next_node_id)
-        if next_node_id == self_id: 
+        if next_node_id == self_id:
             send_back_predecessor(key_to_find, query_node_id)
         ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id)
         print str(self_id) + "asked next node"
@@ -469,9 +479,9 @@ def init_finger_table(arbitrary_node_id):
     global self_predecessor_id
     self_predecessor_id = listen_for_predecessor_query()
     set_predecessor(successors[1], self_id)
-    
+
     for i in range(1,m):
-        print str(self_id) + "working on entry - " + str(i) 
+        print str(self_id) + "working on entry - " + str(i)
         finger_starts[i+1] = calculate_finger_start(i+1)
         #intervals[i+1] = (finger_starts[i+1], calculate_finger_start(i+2))
         if is_in_range_left_inclusive(finger_starts[i+1], self_id, successors[i]):
@@ -514,10 +524,10 @@ def wait_for_node_to_update():
         if message["action"] != "update_complete":
             print "Bad Update Message..."
             print data
-        return 
+        return
     except Exception:
             print "Bad Update Message..."
-   
+
 
 def update_finger_table(new_node_id, i, query_node_id):
     """
@@ -530,7 +540,7 @@ def update_finger_table(new_node_id, i, query_node_id):
             notify_node_to_update_finger_table(self_predecessor_id, new_node_id, i, self_id)
             wait_for_node_to_update()
     send_back_update_complete(query_node_id)
-    print str(self_id) + " update finger table complete, succesors[{}] = {}".format(i,successors[i]) 
+    print str(self_id) + " update finger table complete, succesors[{}] = {}".format(i,successors[i])
 
 
 def update_others():
@@ -567,7 +577,7 @@ def move_keys(begin_range, end_range):
     Remove keys in range from keystore and send them to predecessor
     """
     keys_to_remove = []
-    global keys 
+    global keys
     for key in keys:
         if is_in_range_right_inclusive(key,begin_range,end_range):
             keys_to_remove.append(key)
@@ -579,7 +589,7 @@ def main():
     """
     Initialize node variables, send ack to coordinator, start listening
     """
-    global coordinator_port 
+    global coordinator_port
     global start_port #Port where identifier space starts
 
     #Lists to hold finger table information, should probably create object for entries and store in one list
@@ -592,7 +602,7 @@ def main():
     global self_id
     global m #number of bits in ID
 
-    
+
     signal.signal(signal.SIGTERM, term_handler)
 
     coordinator_port = int(sys.argv[1])
@@ -625,7 +635,7 @@ def main():
         init_finger_table(arbitrary_node_id)
         update_others()
         ask_next_node_to_move_keys()
-        wait_for_key_transfer_to_complete() 
+        wait_for_key_transfer_to_complete()
     else:
         for i in range(1,m+1):
             finger_starts[i] = calculate_finger_start(i)
