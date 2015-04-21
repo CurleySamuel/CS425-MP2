@@ -220,6 +220,13 @@ def notify_node_to_update_finger_table(out_of_date_node_id, new_node_id, i, quer
     encoded_string = json.dumps({'action':'update_finger_table','new_node_id':new_node_id, 'i':i, 'query_node_id':query_node_id})
     send_message(out_of_date_node_id, encoded_string)
 
+def notify_node_to_update_finger_table_leave(out_of_date_node_id, new_node_id, i, query_node_id, delete_node_successor):
+    """
+    Notify a node to update it's finger table with a node LEFT
+    """
+    encoded_string = json.dumps({'action':'update_finger_table_leave','new_node_id':new_node_id, 'i':i, 'query_node_id':query_node_id, 'delete_node_successor':delete_node_successor})
+    send_message(out_of_date_node_id, encoded_string)
+
 
 """
 Following functions used to listen for messages
@@ -343,12 +350,17 @@ def handle_message(data):
             self_predecessor_id = message['predecessor_id']
             print str(self_id) + " predecessor set to {}".format(self_predecessor_id)
 
-
         elif action == 'move_keys':
             move_keys(message['begin_range'], message['end_range'])
 
         elif action == 'list':
             send_ack(keys)
+
+        elif action == 'leave':
+            leave() 
+
+        elif action == 'update_finger_table_leave':
+            update_finger_table_remove(message['new_node_id'], message['i'], message['query_node_id'], message['delete_node_successor'])
 
     start_listening()
 
@@ -514,6 +526,13 @@ def send_back_update_complete(query_node_id):
     encoded_string = json.dumps({'action':'update_complete'})
     send_message(query_node_id, encoded_string)
 
+def send_back_update_complete_leave(query_node_id):
+    """
+    Let original node that initiating query know the update is complete
+    """
+    encoded_string = json.dumps({'action':'update_complete_leave'})
+    send_message(query_node_id, encoded_string)
+
 
 def wait_for_node_to_update():
     """
@@ -530,6 +549,23 @@ def wait_for_node_to_update():
         return
     except Exception:
             print "Bad Update Message..."
+   
+def wait_for_node_to_update_leave():
+    """
+    Wait till out-of-date node is finished updating
+    """
+    import ipdb; ipdb.set_trace()
+    conn, addr = s.accept()
+    data = conn.recv(buffer_size)
+    print str(self_id) + " waiting for update message..."
+    try:
+        message = json.loads(data)
+        if message["action"] != "update_complete_leave":
+            print "Bad Update Message..."
+            print data
+        return 
+    except Exception:
+            print "Bad Update Message..."
 
 
 def update_finger_table(new_node_id, i, query_node_id):
@@ -544,7 +580,6 @@ def update_finger_table(new_node_id, i, query_node_id):
             wait_for_node_to_update()
     send_back_update_complete(query_node_id)
     print str(self_id) + " update finger table complete, succesors[{}] = {}".format(i,successors[i])
-
 
 def update_others():
     """
@@ -566,6 +601,46 @@ def update_others():
             wait_for_node_to_update()
         print str(self_id) + " update others iteration complete"
 
+
+def leave():
+    """
+    leave network 
+    """
+    for i in range(1,m+1):
+        print str(self_id) + ' i:'+ str(i)
+        val = (self_id - pow(2,i-1) + 1) % pow(2,m)
+        print str(self_id) + ' looking for predecessor of '+ str(val)
+        predecessor_id = None
+        if self_id == val:
+            predecessor_id = self_predecessor_id
+        else:
+            find_predecessor(val, self_id)
+            predecessor_id = listen_for_predecessor()
+        print str(self_id) + ' predecessor found: '+ str(predecessor_id)
+        if predecessor_id != self_id:
+            notify_node_to_update_finger_table_leave(predecessor_id, self_id, i, self_id, successors[1])
+            wait_for_node_to_update_leave()
+        print str(self_id) + " update others iteration complete"
+    
+    encoded_string = json.dumps({'action':'force_key', 'data':keys})
+    send_message(successors[i], encoded_string)
+    send_ack()
+    exit()
+    print 'left'
+
+
+def update_finger_table_remove(new_node_id, i, query_node_id, delete_node_successor):
+    """
+    Some logic to update an individual finger table, need to figure how this works
+    """
+    print str(self_id) + " updating finger table"
+    if successors[i] == new_node_id:
+        successors[i] = delete_node_successor
+        if self_predecessor_id != new_node_id and self_predecessor_id != query_node and self_predecessor_id != self_id:
+            notify_node_to_update_finger_table_leave(self_predecessor_id, new_node_id, i, self_id, delete_node_successor)
+            wait_for_node_to_update_leave()
+    send_back_update_complete_leave(query_node_id)
+    
 
 def transfer_keys_to_predecessor(keys_to_remove):
     """
@@ -626,7 +701,7 @@ def main():
     s.bind(('', get_port(self_id)))
     s.listen(5)
 
-    m = 8 #TODO: Currently hardcoding identifier size
+    m = 3 #TODO: Currently hardcoding identifier size
     keys = []
     finger_starts = {}
     intervals = {}

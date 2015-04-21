@@ -101,6 +101,10 @@ def main():
                 "action": "leave"
             }
             rsp = send_message(node_list[int(parsed[1])][0], data)
+            for x in range(0,256):
+                if node_list[x][0] == node_list[int(parsed[2])][0]:
+                    node_list.delete[x]
+                    break
             print colored("Node successfully removed.", "green")
         elif parsed[0] == "show":
             data = {
