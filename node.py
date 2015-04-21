@@ -568,6 +568,7 @@ def update_others():
             notify_node_to_update_finger_table(predecessor_id, self_id, i, query_node_id=self_id)
             wait_for_node_to_update()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 def wait_for_predecessor_to_update():
     """
@@ -583,6 +584,8 @@ def wait_for_predecessor_to_update():
     except Exception:
             print "Bad Key Transfer Message..."
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 
