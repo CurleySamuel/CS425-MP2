@@ -339,8 +339,11 @@ def handle_message(data):
         elif action == 'set_predecessor':
             global self_predecessor_id
             self_predecessor_id = message['predecessor_id']
+<<<<<<< Updated upstream
             encoded_string = json.dumps({'action':'predecessor_updated'})
             send_message(int(message['query_node_id']), encoded_string)
+=======
+>>>>>>> Stashed changes
 
         elif action == 'move_keys':
             move_keys(message['begin_range'], message['end_range'])
@@ -569,6 +572,7 @@ def update_others():
             wait_for_node_to_update()
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
 def wait_for_predecessor_to_update():
     """
@@ -584,6 +588,8 @@ def wait_for_predecessor_to_update():
     except Exception:
             print "Bad Key Transfer Message..."
 
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
 =======
