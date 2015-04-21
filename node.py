@@ -85,11 +85,14 @@ Following functions used for message passing
 """
 
 def add_to_count():
-    s3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s3.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s3.connect(('', 60001))
-    s3.send("Count!")
-    s3.close()
+    try:
+        s3 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s3.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s3.connect(('', 60001))
+        s3.send("Count!")
+        s3.close()
+    except Exception:
+        pass
 
 
 def send_message(node_id, data):

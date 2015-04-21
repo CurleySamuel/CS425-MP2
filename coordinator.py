@@ -11,6 +11,27 @@ coord_port = 44443
 start_port = 44444
 node_list = {}
 outfile = sys.stdout
+benchmark_mode = True
+benchmark_P = 4
+benchmark_F = 64
+benchmark_node_list = []
+
+def benchmark_command():
+    for x in range(0,benchmark_P):
+        a = random.choice(range(0,256))
+        while a in benchmark_node_list:
+            a = random.choice(range(0,256))
+        benchmark_node_list.append(a)
+        yield "join {}".format(a)
+    print "Phase 1 Complete"
+    time.sleep(5)
+    for x in range(0,benchmark_F):
+        a = random.choice(benchmark_node_list)
+        b = random.choice(range(0,256))
+        yield "find {} {}".format(a,b)
+
+
+gen = benchmark_command()
 
 def main():
     global outfile
@@ -46,7 +67,14 @@ def main():
     # Enter input loop
     print colored("System Initialized! Entering loop.\n", "yellow")
     while 1:
-        command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
+        if benchmark_mode:
+            try:
+                command = gen.next()
+            except StopIteration:
+                print "Benchmark Complete"
+                sys.exit(0)
+        else:
+            command = raw_input('\x1b[35mCommand:\x1b[0m\n\t')
         command = command.lower()
         if command == "exit":
             break
