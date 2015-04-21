@@ -11,7 +11,7 @@ coord_port = 44443
 start_port = 44444
 node_list = {}
 outfile = sys.stdout
-benchmark_mode = True
+benchmark_mode = False
 benchmark_P = 4
 benchmark_F = 64
 benchmark_node_list = []
@@ -101,10 +101,9 @@ def main():
                 "action": "leave"
             }
             rsp = send_message(node_list[int(parsed[1])][0], data)
-            for x in range(0,256):
-                if node_list[x][0] == node_list[int(parsed[2])][0]:
-                    node_list.delete[x]
-                    break
+            # You're sending an extra ack?
+            listen_for_complete()
+            del node_list[int(parsed[1])]
             print colored("Node successfully removed.", "green")
         elif parsed[0] == "show":
             data = {
@@ -112,10 +111,12 @@ def main():
             }
             if parsed[1] != "all":
                 rsp = send_message(node_list[int(parsed[1])][0], data)
+                rsp['data'].sort()
                 print >> outfile, "{} ".format(parsed[1]) + ' '.join(map(str, rsp['data']))
             else:
                 for key,val in node_list.iteritems():
                     rsp = send_message(val[0], data)
+                    rsp['data'].sort()
                     print >> outfile, "{} ".format(key) + ' '.join(map(str,rsp['data']))
 
     # Kill all procreations

@@ -357,7 +357,7 @@ def handle_message(data):
             send_ack(keys)
 
         elif action == 'leave':
-            leave() 
+            leave()
 
         elif action == 'update_finger_table_leave':
             update_finger_table_remove(message['new_node_id'], message['i'], message['query_node_id'], message['delete_node_successor'])
@@ -549,12 +549,11 @@ def wait_for_node_to_update():
         return
     except Exception:
             print "Bad Update Message..."
-   
+
 def wait_for_node_to_update_leave():
     """
     Wait till out-of-date node is finished updating
     """
-    import ipdb; ipdb.set_trace()
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
     print str(self_id) + " waiting for update message..."
@@ -563,7 +562,7 @@ def wait_for_node_to_update_leave():
         if message["action"] != "update_complete_leave":
             print "Bad Update Message..."
             print data
-        return 
+        return
     except Exception:
             print "Bad Update Message..."
 
@@ -604,7 +603,7 @@ def update_others():
 
 def leave():
     """
-    leave network 
+    leave network
     """
     for i in range(1,m+1):
         print str(self_id) + ' i:'+ str(i)
@@ -621,12 +620,12 @@ def leave():
             notify_node_to_update_finger_table_leave(predecessor_id, self_id, i, self_id, successors[1])
             wait_for_node_to_update_leave()
         print str(self_id) + " update others iteration complete"
-    
+
     encoded_string = json.dumps({'action':'force_key', 'data':keys})
     send_message(successors[i], encoded_string)
     send_ack()
-    exit()
     print 'left'
+    exit()
 
 
 def update_finger_table_remove(new_node_id, i, query_node_id, delete_node_successor):
@@ -640,7 +639,7 @@ def update_finger_table_remove(new_node_id, i, query_node_id, delete_node_succes
             notify_node_to_update_finger_table_leave(self_predecessor_id, new_node_id, i, self_id, delete_node_successor)
             wait_for_node_to_update_leave()
     send_back_update_complete_leave(query_node_id)
-    
+
 
 def transfer_keys_to_predecessor(keys_to_remove):
     """
