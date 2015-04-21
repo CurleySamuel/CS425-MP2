@@ -56,7 +56,7 @@ def main():
         if parsed[0] == "join":
             data = {
                 "action": "create",
-                "existing_node": node_list[random.choice(node_list.keys())][0]
+                "existing_node": node_list[0][0]#node_list[random.choice(node_list.keys())][0]
             }
             launch_node(int(parsed[1]), data)
             listen_for_complete()
@@ -67,7 +67,7 @@ def main():
                 "key": int(parsed[2])
             }
             rsp = send_message(node_list[int(parsed[1])][0], data)
-            print colored("Key located at node {}", "green").format(int(rsp["found"])-start_port)
+            print colored("Key located at node {}", "green").format(rsp["found"])
         elif parsed[0] == "leave":
             data = {
                 "action": "leave"
