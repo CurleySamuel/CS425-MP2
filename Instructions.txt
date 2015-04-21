@@ -1,0 +1,2 @@
+Step 1. Type python coordinator.py
+Step 2. That's all! :)
