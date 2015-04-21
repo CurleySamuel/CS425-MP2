@@ -19,7 +19,7 @@ def get_port(id):
 
 
 def send_message(port, data):
-    print "Sending {}".format(data)
+    print "{} Sending to {} - {}".format(self_id, get_id(port), data)
     s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s2.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s2.connect(('', port))
@@ -76,7 +76,7 @@ def handle_message(datas):
             src = message['src']
             i = message['i']
             update_finger_table(key,i)
-            reply_to_node(src, {'action': "ACK"})
+            reply_to_node(src, {'action': "ACK" })
         elif action == "key_request":
             key = message['key']
             src = message['src']
@@ -152,6 +152,7 @@ def send_update_finger_table(node, key, i):
         'i': i
     }
     send_message(get_port(node), json.dumps(data))
+    return listen_once()
 
 
 def send_key_request(node):
@@ -215,9 +216,10 @@ def start_listening_loop():
 
 
 def listen_once():
+    print "{} Listening".format(self_id)
     conn, addr = s.accept()
     data = json.loads(conn.recv(4096))
-    print "Receiving {}".format(data)
+    print "{} Receiving {}".format(self_id,data)
     return data
 
 
@@ -264,13 +266,18 @@ def update_others():
     for i in range(1,9):
         p = find_predecessor((self_id-(2**(i-1)))%(2**8))
         send_update_finger_table(p, self_id, i)
+        listen_once()
 
 
 def update_finger_table(s,i):
     global data
     if range_ie(self_id, s, data['fing'][i]['node']) or self_id == data['fing'][i]['node']:
         data['fing'][i]['node'] = s
-        send_update_finger_table(data['pred'], s, i)
+        if data['pred'] != s:
+            send_update_finger_table(data['pred'], s, i)
+            listen_once()
+        else:
+            import ipdb; ipdb.set_trace()
 
 
 def move_keys():
