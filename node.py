@@ -106,9 +106,11 @@ def send_message(node_id, data):
        port = get_port(node_id)
 
     #try:
+    print str(self_id) + "sending " + str(data) + " to " + str(port)
     s2.connect(('', port))
     s2.send(data)
     s2.close()
+    print str(self_id) + "sent " + str(data) + " to " + str(get_id(port))
 
     add_to_count()
 
@@ -169,6 +171,7 @@ def send_back_predecessor(key_to_find, query_node_id):
     """
     encoded_string = json.dumps({'action':'predecessor_found', 'key':key_to_find, 'predecessor_id':self_id})
     send_message(query_node_id, encoded_string)
+    print str(self_id) + "sending send-back_predecessor message"
 
 
 def send_back_successor(successor, query_node):
@@ -189,6 +192,7 @@ def ask_arbitrary_node_for_successor(arbitrary_node_id, key_to_find):
     """
     encoded_message = json.dumps({'action':'find_successor', 'key':key_to_find, 'query_node_id':self_id})
     send_message(arbitrary_node_id, encoded_message)
+    print str(self_id) + " asked arbitrary node for successor"
 
 
 
@@ -198,6 +202,7 @@ def ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id):
     """
     encoded_string = json.dumps({'action':'find_predecessor', 'key':key_to_find, 'query_node_id':query_node_id})
     send_message(next_node_id, encoded_string)
+    print str(self_id) + "sent ask-node message to " + str(next_node_id)
 
 
 def ask_next_node_to_move_keys():
@@ -231,6 +236,7 @@ def listen_for_successor_query():
     """
     Waits until the successor information of a specific node is returned
     """
+    print str(self_id) + "Listening for successor query"
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
     try:
@@ -261,8 +267,10 @@ def listen_for_successor():
     """
     Waits until the successor for a given key is found
     """
+    print str(self_id) + "listening for successor"
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
+    print str(self_id) + "successor data received"
     try:
         message = json.loads(data)
         if message["action"] != "successor_found":
@@ -310,6 +318,7 @@ def handle_message(data):
     Decode message and determine task
     """
     message = json.loads(data)
+    print str(self_id) + "handling message - " + data
 
     if 'action' in message:
         action = message['action']
@@ -339,11 +348,10 @@ def handle_message(data):
         elif action == 'set_predecessor':
             global self_predecessor_id
             self_predecessor_id = message['predecessor_id']
-<<<<<<< Updated upstream
             encoded_string = json.dumps({'action':'predecessor_updated'})
-            send_message(int(message['query_node_id']), encoded_string)
-=======
->>>>>>> Stashed changes
+            send_message(int(message['query_node_id']), encoded_string) 
+            
+            print str(self_id) + " predecessor set to {}".format(self_predecessor_id)
 
         elif action == 'move_keys':
             move_keys(message['begin_range'], message['end_range'])
@@ -400,12 +408,15 @@ def find_successor(key_to_find, query_node_id):
 
     find_predecessor(key_to_find, self_id)#query_node_id)
     predecessor = listen_for_predecessor()
+    print str(self_id) + "predecessor found - " + str(predecessor)
     successor = None
+    print str(self_id) + "finding successor"
     if predecessor != self_id:
         retrieve_successor(predecessor)
         successor = listen_for_successor_query()
     else:
         successor = successors[1]
+    print str(self_id) + "successor found " + str(successor)
     if query_node_id == self_id:
         return successor
     send_back_successor(successor, query_node_id)
@@ -416,6 +427,7 @@ def find_predecessor(key_to_find, query_node_id):
     Finds the predecessor by moving forward in the chord circle till it finds a node whose value is less than the key \
     predecessor is greater than the given key
     """
+    print str(self_id) + " finding predecessor"
     """
     if self_predecessor_id == self_successor_id:
         send_back_predecessor(key_to_find, query_node_id)
@@ -424,14 +436,19 @@ def find_predecessor(key_to_find, query_node_id):
     current_node = self_id
     current_successor = successors[1]
 
+    print 'looking for ',key_to_find,' in range ',current_node, ' to ',current_successor
     if is_in_range_right_inclusive(key_to_find, current_node, current_successor):
         #Predecessor found!
+        print str(self_id) + "predecessor found"
         send_back_predecessor(key_to_find, query_node_id)
     else:
+        print str(self_id) + "finding closest predecessor"
         next_node_id = closest_preceding_finger(key_to_find)
+        print str(self_id) + "closest preceding finger - " + str(next_node_id)
         if next_node_id == self_id:
             send_back_predecessor(key_to_find, query_node_id)
         ask_next_node_for_predecessor(next_node_id, key_to_find, query_node_id)
+        print str(self_id) + "asked next node"
 
 
 def closest_preceding_finger(key_to_find):
@@ -454,6 +471,7 @@ def calculate_finger_start(k):
     Calculate start of finger - (n + 2^(k-1)) mod 2^m
     """
     val = (self_id + pow(2,k-1) ) % pow(2,m)
+    print str(self_id) +  " calculated finger start - " + str(val)
     return val
 
 def set_predecessor(out_of_date_node_id, new_predecessor):
@@ -468,11 +486,13 @@ def init_finger_table(arbitrary_node_id):
     """
     Use an arbitrary node to initialize the new node's finger table
     """
+    print str(self_id) + "init_finger_table"
     finger_starts[1] = calculate_finger_start(1)
     #intervals[1] = (finger_starts[1], calculate_finger_start(2))
     ask_arbitrary_node_for_successor(arbitrary_node_id, finger_starts[1])
     successors[1] = listen_for_successor()
 
+    print str(self_id) + " first finger table entry created"
     retrieve_predecessor(successors[1])
     global self_predecessor_id
     self_predecessor_id = listen_for_predecessor_query()
@@ -480,14 +500,19 @@ def init_finger_table(arbitrary_node_id):
     wait_for_predecessor_to_update()
 
     for i in range(1,m):
+        print str(self_id) + "working on entry - " + str(i)
         finger_starts[i+1] = calculate_finger_start(i+1)
         #intervals[i+1] = (finger_starts[i+1], calculate_finger_start(i+2))
         if is_in_range_left_inclusive(finger_starts[i+1], self_id, successors[i]):
+            print "true"
             successors[i+1] = successors[i]
         else:
+            print "false"
             ask_arbitrary_node_for_successor(arbitrary_node_id, finger_starts[i+1])
             successors[i+1] = listen_for_successor()
 
+    print 'init finger table done'
+    show_finger_table()
 
 
 def show_finger_table():
@@ -519,6 +544,7 @@ def wait_for_node_to_update():
     """
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
+    print str(self_id) + " waiting for update message..."
     try:
         message = json.loads(data)
         if message["action"] != "update_complete":
@@ -534,6 +560,7 @@ def wait_for_node_to_update_leave():
     """
     conn, addr = s.accept()
     data = conn.recv(buffer_size)
+    print str(self_id) + " waiting for update message..."
     try:
         message = json.loads(data)
         if message["action"] != "update_complete_leave":
@@ -548,31 +575,34 @@ def update_finger_table(new_node_id, i, query_node_id):
     """
     Some logic to update an individual finger table, need to figure how this works
     """
+    print str(self_id) + " updating finger table"
     if is_in_range_left_inclusive(new_node_id, self_id, successors[i]):
         successors[i] = new_node_id
         if(self_predecessor_id != self_id and self_predecessor_id != query_node_id and self_predecessor_id != new_node_id):
             notify_node_to_update_finger_table(self_predecessor_id, new_node_id, i, self_id)
             wait_for_node_to_update()
     send_back_update_complete(query_node_id)
+    print str(self_id) + " update finger table complete, succesors[{}] = {}".format(i,successors[i])
 
 def update_others():
     """
     Update the finger tables of other nodes to reflect the new node joining
     """
     for i in range(1,m+1):
+        print str(self_id) + ' i:'+ str(i)
         val = (self_id - pow(2,i-1) + 1) % pow(2,m)
+        print str(self_id) + ' looking for predecessor of '+ str(val)
         predecessor_id = None
         if self_id == val:
             predecessor_id = self_predecessor_id
         else:
             find_predecessor(val, self_id)
             predecessor_id = listen_for_predecessor()
+        print str(self_id) + ' predecessor found: '+ str(predecessor_id)
         if predecessor_id != self_id:
             notify_node_to_update_finger_table(predecessor_id, self_id, i, query_node_id=self_id)
             wait_for_node_to_update()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
+        print str(self_id) + " update others iteration complete"
 
 def wait_for_predecessor_to_update():
     """
@@ -588,12 +618,6 @@ def wait_for_predecessor_to_update():
     except Exception:
             print "Bad Key Transfer Message..."
 
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
 
 def leave():
@@ -604,22 +628,27 @@ def leave():
     if successors[1] != self_id and self_predecessor_id != self_id:
         set_predecessor(successors[1], self_predecessor_id)
         wait_for_predecessor_to_update()
-
+        
     for i in range(1,m+1):
+        print str(self_id) + ' i:'+ str(i)
         val = (self_id - pow(2,i-1) + 1) % pow(2,m)
+        print str(self_id) + ' looking for predecessor of '+ str(val)
         predecessor_id = None
         if self_id == val:
             predecessor_id = self_predecessor_id
         else:
             find_predecessor(val, self_id)
             predecessor_id = listen_for_predecessor()
+        print str(self_id) + ' predecessor found: '+ str(predecessor_id)
         if predecessor_id != self_id:
             notify_node_to_update_finger_table_leave(predecessor_id, self_id, i, self_id, successors[1])
             wait_for_node_to_update_leave()
+        print str(self_id) + " update others iteration complete"
 
     encoded_string = json.dumps({'action':'force_key', 'data':keys})
     send_message(successors[1], encoded_string)
     send_ack()
+    print 'left'
     exit()
 
 
@@ -627,6 +656,7 @@ def update_finger_table_remove(new_node_id, i, query_node_id, delete_node_succes
     """
     Some logic to update an individual finger table, need to figure how this works
     """
+    print str(self_id) + " updating finger table"
     if successors[i] == new_node_id:
         successors[i] = delete_node_successor
         if self_predecessor_id != new_node_id and self_predecessor_id != query_node_id and self_predecessor_id != self_id:
@@ -700,6 +730,7 @@ def main():
     intervals = {}
     successors = {}
 
+    print str(self_id) + "about to join - " + str(self_port)
     if arbitrary_node_port is not None:
         arbitrary_node_id = get_id(arbitrary_node_port)
         init_finger_table(arbitrary_node_id)
@@ -711,6 +742,7 @@ def main():
             finger_starts[i] = calculate_finger_start(i)
             intervals[i] = (finger_starts[i], calculate_finger_start(i+1))
             successors[i] = self_id
+        show_finger_table()
         self_predecessor_id = self_id
 
     send_ack()
